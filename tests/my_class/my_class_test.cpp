@@ -32,22 +32,6 @@ struct DataSet {
 
         return true;
     }
-
-    bool operator != (const DataSet<T> other){
-        if (data.size() != other.data.size()) {
-            return false;
-        }
-        for (const auto [id, vec]: data) {
-            auto otherVec = other.data.at(id);
-            int i;
-            //            for (int )
-            //            if (vec != other.data[id]) {
-            //                return false;
-            //            }
-        }
-
-        return true;
-    }
 };
 
 
@@ -97,26 +81,11 @@ protected:
     int partition(vector<T>& data, int low, int high);
 };
 
-template <typename T>
-int SimpleQSort<T>::partition(vector<T>& data, int low, int high)
-{
-//    int pivot = medianOfThree(data, low, high);
-//    int i = low -1; // Pointer for the greater element
-//
-//    for (int j = low + 1; j <= high; j++) {
-//        if (data[j] <= pivot) {
-//            swap(data[i], data[j]);
-//            i++;
-//        }
-//    }
-//    swap(data[low], data[i - 1]); // Place the pivot in the correct position
-//    return i - 1; // Return the partition index
-}
 
 template <typename T>
 int SimpleQSort<T>::divideByPivotHoare(vector<T>& data, int low, int high)
 {
-    T pivot = data[low]; //medianOfThree(data, low, high); // Choose the pivot (you could also choose the middle element or random)
+    T pivot = medianOfThree(data, low, high); // Choose the pivot (you could also choose the middle element or random)
     int i = low - 1; // Start before the first element
     int j = high + 1; // Start after the last element
 
@@ -268,58 +237,10 @@ void MultithreadQSort<T>::quickSort(std::vector<T>& data, int low, int high, int
             quickSort(data, low, pi, depth + 1);        // Recursively sort before partition
             quickSort(data, pi + 1, high, depth + 1);       // Recursively sort after partition
         }
-
-//        int pivotIndex = divideByPivot(data, low, high);
-//
-//        if (depth < MAX_DEPTH) {
-//            std::thread leftThread(&MultithreadQSort<T>::quickSort, this, std::ref(data), low, pivotIndex - 1, depth + 1);
-//            leftThread.join();
-//
-//            quickSort(data, pivotIndex + 1, high, depth + 1);
-//        } else {
-//            quickSort(data, low, pivotIndex - 1, depth + 1);
-//            quickSort(data, pivotIndex + 1, high, depth + 1);
-//        }
     }
 }
 
 //==============================================================================================
-
-// Comparison function for integers
-//template<typename T>
-//T compare(const void* a, const void* b) {
-//    T valA = *reinterpret_cast<const T*>(a);
-//    T valB = *reinterpret_cast<const T*>(b);
-//
-//    return (valA > valB) - (valA < valB);  // Same as (int_a - int_b)
-//}
-
-template<typename T>
-int compare(const void* x, const void* y) {
-    // Cast the void pointers to the correct type (T in this case)
-    const auto arg1 = *static_cast<const T*>(x);
-    const auto arg2 = *static_cast<const T*>(y);
-
-    // Use the spaceship operator for comparison
-    const auto cmp = arg1 <=> arg2;
-
-    // Return -1, 0, or 1 based on the comparison result
-    if (cmp < 0) return -1; // arg1 is less than arg2
-    if (cmp > 0) return 1;  // arg1 is greater than arg2
-    return 0;               // arg1 is equal to arg2
-}
-
-//template<typename T>
-//int compare(const void* a, const void* b) {
-//    // Cast the void pointers to the correct type (double in this case)
-//    double valA = *reinterpret_cast<const double*>(a);
-//    double valB = *reinterpret_cast<const double*>(b);
-//
-//    // Return an int: -1 if valA < valB, 0 if equal, 1 if valA > valB
-//    if (valA < valB) return -1;
-//    if (valA > valB) return 1;
-//    return 0;
-//}
 
 template<typename T>
 class StandartQSort: public ISorter<T>{
@@ -356,11 +277,11 @@ struct Sorter {
         for (auto& [id, data]: dataSet.data) {
             Timer timer(id, data.size());
             sorter->sort(data);
-            cout << "\nSorted data:" << endl;
-            for (auto& val: data) {
-                cout << val << "\t";
-            }
-            cout << endl;
+//            cout << "\nSorted data:" << endl;
+//            for (auto& val: data) {
+//                cout << val << "\t";
+//            }
+//            cout << endl;
         }
         sortedData.push_back(dataSet);
         cout << "\n" << endl;
@@ -379,9 +300,9 @@ struct Sorter {
             } else {
                 return false;
             }
-
-            return true;
         }
+
+        return true;
     }
 
     vector<DataSet<T>> sortedData;
@@ -440,6 +361,8 @@ TEST(test_quick_sort, test_basic_int)
     sorter.sort(dataSet, std::make_unique<SimpleQSort<int>>());
     cout << "MultithreadQSort:" << endl;
     sorter.sort(dataSet, std::make_unique<MultithreadQSort<int>>());
+
+    EXPECT_TRUE(sorter.verifyEqulityOfData());
 }
 
 
@@ -455,12 +378,12 @@ TEST(test_quick_sort, test_basic_double)
     dataSet.data[id++] = getSortedVec<double>(2);
     dataSet.data[id++] = getRandomVec<double>(10, -1000, 1000);
     dataSet.data[id++] = getSortedVec<double>(10);
-//    dataSet.data[id++] = getRandomVec<double>(1000, -1000, 1000);
-//    dataSet.data[id++] = getSortedVec<double>(1000);
-//    dataSet.data[id++] = getRandomVec<double>(1000000, -1000, 1000);
-//    dataSet.data[id++] = getSortedVec<double>(1000000);
-//    dataSet.data[id++] = getRandomVec<double>(10000000, -1000, 1000);
-
+    dataSet.data[id++] = getRandomVec<double>(1000, -1000, 1000);
+    dataSet.data[id++] = getSortedVec<double>(1000);
+    dataSet.data[id++] = getRandomVec<double>(1000000, -1000, 1000);
+    dataSet.data[id++] = getSortedVec<double>(1000000);
+    dataSet.data[id++] = getRandomVec<double>(10000000, -1000, 1000);
+    dataSet.data[id++] = getSortedVec<double>(10000000);
 
     Sorter<double> sorter;
 
@@ -469,7 +392,6 @@ TEST(test_quick_sort, test_basic_double)
     cout << "SimpleQSort:" << endl;
     sorter.sort(dataSet, std::make_unique<SimpleQSort<double>>());
     cout << "MultithreadQSort:" << endl;
-    dataSet.data[0].push_back(11.1);
     sorter.sort(dataSet, std::make_unique<MultithreadQSort<double>>());
 
     EXPECT_TRUE(sorter.verifyEqulityOfData());

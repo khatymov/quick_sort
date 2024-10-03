@@ -79,8 +79,23 @@ protected:
     int divideByPivotHoare(vector<T>& data, int low, int high);
 
     int partition(vector<T>& data, int low, int high);
+    T medianOfThree(vector<T>& arr, int low, int high);
 };
 
+template <typename T>
+T SimpleQSort<T>::medianOfThree(vector<T>& arr, int low, int high)
+{
+    int mid = low + (high - low) / 2;
+    if (arr[low] > arr[mid])
+        swap(arr[low], arr[mid]);
+    if (arr[low] > arr[high])
+        swap(arr[low], arr[high]);
+    if (arr[mid] > arr[high])
+        swap(arr[mid], arr[high]);
+    // Move the pivot to the end
+    swap(arr[mid], arr[high - 1]);
+    return arr[high - 1]; // return the pivot value
+}
 
 template <typename T>
 int SimpleQSort<T>::divideByPivotHoare(vector<T>& data, int low, int high)
@@ -89,11 +104,17 @@ int SimpleQSort<T>::divideByPivotHoare(vector<T>& data, int low, int high)
     int i = low - 1; // Start before the first element
     int j = high + 1; // Start after the last element
 
+    // 1 6 2 5 7 2 8
+    // i 6     j 2
+    // 1 2 2 5 7 6 8
+    // 1 2 2 5 7 6 8
+    //    ij 5
     while (true) {
         // Increment i until we find an element greater than or equal to the pivot
         do {
             i++;
         } while (data[i] < pivot);
+
 
         // Decrement j until we find an element less than or equal to the pivot
         do {
@@ -256,17 +277,17 @@ public:
 
 template<typename T>
 void StandartQSort<T>::sort(std::vector<T>& data) {
-    std::qsort(data.data(), data.size(), sizeof(T),         [](const void* x, const void* y)
-               {
-                   const auto arg1 = *static_cast<const T*>(x);
-                   const auto arg2 = *static_cast<const T*>(y);
-                   const auto cmp = arg1 <=> arg2;
-                   if (cmp < 0)
-                       return -1;
-                   if (cmp > 0)
-                       return 1;
-                   return 0;
-               });
+    std::qsort(data.data(), data.size(), sizeof(T), [](const void* x, const void* y)
+    {
+       const auto arg1 = *static_cast<const T*>(x);
+       const auto arg2 = *static_cast<const T*>(y);
+       const auto cmp = arg1 <=> arg2;
+       if (cmp < 0)
+           return -1;
+       if (cmp > 0)
+           return 1;
+       return 0;
+    });
 }
 
 //==============================================================================================

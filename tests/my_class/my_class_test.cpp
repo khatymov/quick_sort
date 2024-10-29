@@ -13,26 +13,6 @@ using namespace testing;
 #include <random>
 #include <cstdlib>
 
-template <typename T>
-struct DataSet {
-    map<int, vector<T>> data;
-
-    bool operator == (const DataSet<T> other){
-        if (data.size() != other.data.size()) {
-            return false;
-        }
-        for (const auto [id, vec]: data) {
-            auto otherVec = other.data.at(id);
-            if (otherVec != vec) {
-                return false;
-            }
-            int i = 1;
-            i++;
-        }
-
-        return true;
-    }
-};
 
 
 
@@ -42,21 +22,6 @@ public:
     virtual void sort(std::vector<T>& data) = 0;
     ~ISorter() = default;
 };
-
-// Function to find the median of three elements
-template<typename T>
-T medianOfThree(vector<T>& arr, int low, int high) {
-    int mid = low + (high - low) / 2;
-    if (arr[low] > arr[mid])
-        swap(arr[low], arr[mid]);
-    if (arr[low] > arr[high])
-        swap(arr[low], arr[high]);
-    if (arr[mid] > arr[high])
-        swap(arr[mid], arr[high]);
-    // Move the pivot to the end
-    swap(arr[mid], arr[high - 1]);
-    return arr[high - 1]; // return the pivot value
-}
 
 //==============================================================================================
 
@@ -69,9 +34,7 @@ class SimpleQSort: public ISorter<T>{
 public:
     SimpleQSort() = default;
 
-    void sort(std::vector<T>& data) override {
-        quickSort(data, 0, data.size() - 1);
-    }
+    void sort(std::vector<T>& data) override;
 
 protected:
     void quickSort(std::vector<T>& data, int low, int high);
@@ -81,6 +44,13 @@ protected:
     int partition(vector<T>& data, int low, int high);
     T medianOfThree(vector<T>& arr, int low, int high);
 };
+
+template <typename T>
+void SimpleQSort<T>::sort(std::vector<T>& data)
+{
+    quickSort(data, 0, data.size() - 1);
+}
+
 
 template <typename T>
 T SimpleQSort<T>::medianOfThree(vector<T>& arr, int low, int high)
@@ -158,7 +128,7 @@ int SimpleQSort<T>::divideByPivotLomuto(vector<T>& data, int low, int high) {
 template <typename T>
 void SimpleQSort<T>::quickSort(vector<T>& data, int low, int high) {
     if (low < high) {
-        int pi = divideByPivotHoare(data, low, high);
+        const int pi = divideByPivotHoare(data, low, high);
         quickSort(data, low, pi);        // Recursively sort before partition
         quickSort(data, pi + 1, high);       // Recursively sort after partition
 
@@ -174,9 +144,13 @@ void SimpleQSort<T>::quickSort(vector<T>& data, int low, int high) {
     }
 }
 
-
-
 //==============================================================================================
+
+struct Indexes {
+    int pivot = 0;
+    int low = 0;
+    int high = 0;
+};
 
 template<typename T>
 class MultithreadQSort: public ISorter<T>{
@@ -187,17 +161,53 @@ class MultithreadQSort: public ISorter<T>{
 public:
     MultithreadQSort() = default;
 
-    void sort(std::vector<T>& data) override {
-        quickSort(data, 0, data.size() - 1, 0);
-    }
+    void sort(std::vector<T>& data) override;
 
 protected:
     void quickSort(std::vector<T>& data, int low, int high, int depth);
-    int divideByPivot(vector<T>& data, int low, int high);
+    void nonRecursiveQuickSort(std::vector<T>& data);
+//    int divideByPivot(vector<T>& data, int low, int high);
     int divideByPivotHoare(vector<T>& data, int low, int high);
+
+    Indexes divideByPivot(vector<T>& data, int low, int high);
+
+    T medianOfThree(vector<T>& arr, int low, int high);
 
     const int MAX_DEPTH = 2;
 };
+
+
+template <typename T>
+void MultithreadQSort<T>::sort(std::vector<T>& data)
+{
+    quickSort(data, 0, data.size() - 1, 0);
+}
+
+template <typename T>
+T MultithreadQSort<T>::medianOfThree(vector<T>& arr, int low, int high)
+{
+    int mid = low + (high - low) / 2;
+
+    int k = arr[low];
+    int z = arr[mid];
+
+    const bool x = arr[low] > arr[mid];
+    arr[low] = z * (x) + k * (!x);
+    arr[mid] = z * (!x) + k * (x);
+    // instead of
+    // exclude branch prediction
+//    if (arr[low] > arr[mid])
+//        swap(arr[low], arr[mid]);
+
+    if (arr[low] > arr[high])
+        swap(arr[low], arr[high]);
+    if (arr[mid] > arr[high])
+        swap(arr[mid], arr[high]);
+    // Move the pivot to the end
+    swap(arr[mid], arr[high - 1]);
+    return arr[high - 1]; // return the pivot value
+}
+
 template <typename T>
 int MultithreadQSort<T>::divideByPivotHoare(vector<T>& data, int low, int high)
 {
@@ -207,14 +217,10 @@ int MultithreadQSort<T>::divideByPivotHoare(vector<T>& data, int low, int high)
 
     while (true) {
         // Increment i until we find an element greater than or equal to the pivot
-        do {
-            i++;
-        } while (data[i] < pivot);
+        while (data[++i] < pivot);
 
         // Decrement j until we find an element less than or equal to the pivot
-        do {
-            j--;
-        } while (data[j] > pivot);
+        while (data[--j] < pivot);
 
         // If the two indices cross, we are done
         if (i >= j) {
@@ -226,8 +232,26 @@ int MultithreadQSort<T>::divideByPivotHoare(vector<T>& data, int low, int high)
     }
 }
 
+//template <typename T>
+//int MultithreadQSort<T>::divideByPivot(vector<T>& data, int low, int high)
+//{
+//    T pivot = data[high];
+//    int i = low - 1;
+//
+//    for (int j = low; j < high; ++j) {
+//        if (data[j] <= pivot) {
+//            ++i;
+//            swap(data[i], data[j]);
+//        }
+//    }
+//
+//    swap(data[i+1], data[high]);
+//    return i + 1;
+//}
+
+
 template <typename T>
-int MultithreadQSort<T>::divideByPivot(vector<T>& data, int low, int high)
+Indexes MultithreadQSort<T>::divideByPivot(vector<T>& data, int low, int high)
 {
     T pivot = data[high];
     int i = low - 1;
@@ -240,25 +264,51 @@ int MultithreadQSort<T>::divideByPivot(vector<T>& data, int low, int high)
     }
 
     swap(data[i+1], data[high]);
-    return i + 1;
+    return Indexes(i + 1, low, high);
+}
+
+template <typename T>
+void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
+    // до каких пор будем вызывать?
+    // thread_pool(8)
+    // [i, low, high] = divideByPivot(arr, low, high);
+    // queue.push_back([i, low, high])
+    // vector<future> futures; reserve(8)
+    // while (not queue.empty)
+    //  [i, low, high] = queue.front();
+    //  queue.pop();
+    //  if low < high
+    //      std::future<[i, low, high]> future_indexes1 = pool.submit_task(divideByPivot(arr, low, i);
+    //      futures.push_back(future_indexes1);
+    //      std::future<[i, low, high]> future_indexes2 = pool.submit_task(divideByPivot(arr, i+1, high);
+    //      futures.push_back(future_indexes2);
+    //
+    //  for (auto it:futures)
+    //      queue.push_back(it.get());
+    // !need more generic
 }
 
 template <typename T>
 void MultithreadQSort<T>::quickSort(std::vector<T>& data, int low, int high, int depth) {
-
-    if (low < high) {
-        int pi = divideByPivotHoare(data, low, high);
-
-        if (depth < MAX_DEPTH) {
-            std::thread leftThread(&MultithreadQSort<T>::quickSort, this, std::ref(data), low, pi, depth + 1);
-            leftThread.join();
-
-            quickSort(data, pi + 1, high, depth + 1);       // Recursively sort after partition
-        } else {
-            quickSort(data, low, pi, depth + 1);        // Recursively sort before partition
-            quickSort(data, pi + 1, high, depth + 1);       // Recursively sort after partition
-        }
+    while (low < high) {
+        int pi = divideByPivot(data, low, high);
+//        threadPool.push();
     }
+//    //    0 3 7
+//    // -1 0
+//    if (low < high) {
+//        int pi = divideByPivotHoare(data, low, high);
+//
+//        if (depth < MAX_DEPTH) {
+//            std::thread leftThread(&MultithreadQSort<T>::quickSort, this, std::ref(data), low, pi, depth + 1);
+//            leftThread.join();
+//
+//            quickSort(data, pi + 1, high, depth + 1);       // Recursively sort after partition
+//        } else {
+//            quickSort(data, low, pi, depth + 1);        // Recursively sort before partition
+//            quickSort(data, pi + 1, high, depth + 1);       // Recursively sort after partition
+//        }
+//    }
 }
 
 //==============================================================================================
@@ -277,6 +327,7 @@ public:
 
 template<typename T>
 void StandartQSort<T>::sort(std::vector<T>& data) {
+
     std::qsort(data.data(), data.size(), sizeof(T), [](const void* x, const void* y)
     {
        const auto arg1 = *static_cast<const T*>(x);
@@ -292,17 +343,33 @@ void StandartQSort<T>::sort(std::vector<T>& data) {
 
 //==============================================================================================
 
+template <typename T>
+struct DataSet {
+    map<int, vector<T>> data;
+
+    bool operator == (const DataSet<T> other){
+        if (data.size() != other.data.size()) {
+            return false;
+        }
+        for (const auto [id, vec]: data) {
+            auto otherVec = other.data.at(id);
+            if (otherVec != vec) {
+                return false;
+            }
+            int i = 1;
+            i++;
+        }
+
+        return true;
+    }
+};
+
 template<typename T>
 struct Sorter {
     void sort(DataSet<T> dataSet, std::unique_ptr<ISorter<T>> sorter) {
         for (auto& [id, data]: dataSet.data) {
             Timer timer(id, data.size());
             sorter->sort(data);
-//            cout << "\nSorted data:" << endl;
-//            for (auto& val: data) {
-//                cout << val << "\t";
-//            }
-//            cout << endl;
         }
         sortedData.push_back(dataSet);
         cout << "\n" << endl;
@@ -385,7 +452,6 @@ TEST(test_quick_sort, test_basic_int)
 
     EXPECT_TRUE(sorter.verifyEqulityOfData());
 }
-
 
 TEST(test_quick_sort, test_basic_double)
 {

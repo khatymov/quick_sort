@@ -12,8 +12,9 @@ using namespace testing;
 #include <map>
 #include <random>
 #include <cstdlib>
-
-
+#include <future>
+#include <stack>
+#include <span>
 
 
 template<typename T>
@@ -37,68 +38,57 @@ public:
     void sort(std::vector<T>& data) override;
 
 protected:
+    void nonRecursiveSort(std::vector<T>& data);
     void quickSort(std::vector<T>& data, int low, int high);
     int divideByPivotLomuto(vector<T>& data, int low, int high);
-    int divideByPivotHoare(vector<T>& data, int low, int high);
-
-    int partition(vector<T>& data, int low, int high);
-    T medianOfThree(vector<T>& arr, int low, int high);
 };
+
+template <typename T>
+void SimpleQSort<T>::nonRecursiveSort(std::vector<T>& data)
+{
+    // span = data;
+    // stack<std::span<T>> stackIn;
+    // while(not stackIn.empty())
+    //  curInterval = stackIn.top();
+    //  stackIn.pop();
+    //  if (interval.begin() == interval.end()--)
+    //      continue;
+    //  auto pivotLomuto = interval.end()--;
+    //  auto it = std::partition(curInterval.begin(), curInterval.end(), [&pivotLomuto](int num){return std::less<T>(*pivotLomuto)});
+    //  stackOut.push({curInterval.begin(), it});
+    //  stackOut.push({it, curInterval.end()});
+
+    // >> 'it' has its fixed place, and won't change
+
+    stack<std::span<T>> spanStack;
+    spanStack.push(data);
+    while(not spanStack.empty()) {
+        auto curInterval = spanStack.top();
+        spanStack.pop();
+
+        if (curInterval.empty() or curInterval.size() == 1) {
+            continue;
+        }
+
+        auto pivotLomuto = curInterval[curInterval.size() -1];
+        auto it = std::partition(curInterval.begin(), curInterval.end(), [&pivotLomuto](int num){return num < pivotLomuto;});
+        std::nth_element(curInterval.begin(), it, curInterval.end());
+
+        // all sorted, continue
+        if (it == curInterval.end()) {
+            continue;
+        }
+
+        spanStack.push({curInterval.begin(), it});
+        spanStack.push({++it, curInterval.end()});
+    }
+}
 
 template <typename T>
 void SimpleQSort<T>::sort(std::vector<T>& data)
 {
-    quickSort(data, 0, data.size() - 1);
-}
-
-
-template <typename T>
-T SimpleQSort<T>::medianOfThree(vector<T>& arr, int low, int high)
-{
-    int mid = low + (high - low) / 2;
-    if (arr[low] > arr[mid])
-        swap(arr[low], arr[mid]);
-    if (arr[low] > arr[high])
-        swap(arr[low], arr[high]);
-    if (arr[mid] > arr[high])
-        swap(arr[mid], arr[high]);
-    // Move the pivot to the end
-    swap(arr[mid], arr[high - 1]);
-    return arr[high - 1]; // return the pivot value
-}
-
-template <typename T>
-int SimpleQSort<T>::divideByPivotHoare(vector<T>& data, int low, int high)
-{
-    T pivot = medianOfThree(data, low, high); // Choose the pivot (you could also choose the middle element or random)
-    int i = low - 1; // Start before the first element
-    int j = high + 1; // Start after the last element
-
-    // 1 6 2 5 7 2 8
-    // i 6     j 2
-    // 1 2 2 5 7 6 8
-    // 1 2 2 5 7 6 8
-    //    ij 5
-    while (true) {
-        // Increment i until we find an element greater than or equal to the pivot
-        do {
-            i++;
-        } while (data[i] < pivot);
-
-
-        // Decrement j until we find an element less than or equal to the pivot
-        do {
-            j--;
-        } while (data[j] > pivot);
-
-        // If the two indices cross, we are done
-        if (i >= j) {
-            return j; // Return the partitioning index
-        }
-
-        // Swap the elements at indices i and j
-        std::swap(data[i], data[j]);
-    }
+    nonRecursiveSort(data);
+//    quickSort(data, 0, data.size() - 1);
 }
 
 template <typename T>
@@ -114,8 +104,8 @@ int SimpleQSort<T>::divideByPivotLomuto(vector<T>& data, int low, int high) {
     T pivot = data[high];
     int i = low - 1;
 
-    for (int j = low; j < high; ++j) {
-        if (data[j] <= pivot) {
+    for (int j = low; j <= high - 1; ++j) {
+        if (data[j] < pivot) {
             ++i;
             swap(data[i], data[j]);
         }
@@ -127,28 +117,20 @@ int SimpleQSort<T>::divideByPivotLomuto(vector<T>& data, int low, int high) {
 
 template <typename T>
 void SimpleQSort<T>::quickSort(vector<T>& data, int low, int high) {
+//    nonRecursiveSort(data);
     if (low < high) {
-        const int pi = divideByPivotHoare(data, low, high);
-        quickSort(data, low, pi);        // Recursively sort before partition
-        quickSort(data, pi + 1, high);       // Recursively sort after partition
-
-//        int pivotIndex = divideByPivotHoare(data, low, high);
-//        // Hoare's Partition Scheme
-//        quickSort(data, low, pivotIndex);
-//        quickSort(data, pivotIndex + 1, high);
-
         // Lomuto partition scheme
-//        int pivotIndex = divideByPivotLomuto(data, low, high);
-//        quickSort(data, low, pivotIndex - 1);
-//        quickSort(data, pivotIndex + 1, high);
+        int pivotIndex = divideByPivotLomuto(data, low, high);
+        quickSort(data, low, pivotIndex - 1);
+        quickSort(data, pivotIndex + 1, high);
     }
 }
 
 //==============================================================================================
 
 struct Indexes {
-    int pivot = 0;
     int low = 0;
+    int pivot = 0;
     int high = 0;
 };
 
@@ -164,91 +146,26 @@ public:
     void sort(std::vector<T>& data) override;
 
 protected:
-    void quickSort(std::vector<T>& data, int low, int high, int depth);
+
     void nonRecursiveQuickSort(std::vector<T>& data);
-//    int divideByPivot(vector<T>& data, int low, int high);
+
     int divideByPivotHoare(vector<T>& data, int low, int high);
 
-    Indexes divideByPivot(vector<T>& data, int low, int high);
+    static Indexes divideByPivot(vector<T>& data, int low, int high);
 
-    T medianOfThree(vector<T>& arr, int low, int high);
-
-    const int MAX_DEPTH = 2;
+//    static pair<span<T>,span<T>> divideByPivot(span<T> data);
 };
 
 
 template <typename T>
 void MultithreadQSort<T>::sort(std::vector<T>& data)
 {
-    quickSort(data, 0, data.size() - 1, 0);
-}
-
-template <typename T>
-T MultithreadQSort<T>::medianOfThree(vector<T>& arr, int low, int high)
-{
-    int mid = low + (high - low) / 2;
-
-    int k = arr[low];
-    int z = arr[mid];
-
-    const bool x = arr[low] > arr[mid];
-    arr[low] = z * (x) + k * (!x);
-    arr[mid] = z * (!x) + k * (x);
-    // instead of
-    // exclude branch prediction
-//    if (arr[low] > arr[mid])
-//        swap(arr[low], arr[mid]);
-
-    if (arr[low] > arr[high])
-        swap(arr[low], arr[high]);
-    if (arr[mid] > arr[high])
-        swap(arr[mid], arr[high]);
-    // Move the pivot to the end
-    swap(arr[mid], arr[high - 1]);
-    return arr[high - 1]; // return the pivot value
-}
-
-template <typename T>
-int MultithreadQSort<T>::divideByPivotHoare(vector<T>& data, int low, int high)
-{
-    T pivot = medianOfThree(data, low, high); // Choose the pivot (you could also choose the middle element or random)
-    int i = low - 1; // Start before the first element
-    int j = high + 1; // Start after the last element
-
-    while (true) {
-        // Increment i until we find an element greater than or equal to the pivot
-        while (data[++i] < pivot);
-
-        // Decrement j until we find an element less than or equal to the pivot
-        while (data[--j] < pivot);
-
-        // If the two indices cross, we are done
-        if (i >= j) {
-            return j; // Return the partitioning index
-        }
-
-        // Swap the elements at indices i and j
-        std::swap(data[i], data[j]);
-    }
-}
-
-//template <typename T>
-//int MultithreadQSort<T>::divideByPivot(vector<T>& data, int low, int high)
-//{
-//    T pivot = data[high];
-//    int i = low - 1;
-//
-//    for (int j = low; j < high; ++j) {
-//        if (data[j] <= pivot) {
-//            ++i;
-//            swap(data[i], data[j]);
-//        }
+    nonRecursiveQuickSort(data);
+//    for (const auto& it: data) {
+//        cout << it << "\t";
 //    }
-//
-//    swap(data[i+1], data[high]);
-//    return i + 1;
-//}
-
+//    cout << endl;
+}
 
 template <typename T>
 Indexes MultithreadQSort<T>::divideByPivot(vector<T>& data, int low, int high)
@@ -256,16 +173,43 @@ Indexes MultithreadQSort<T>::divideByPivot(vector<T>& data, int low, int high)
     T pivot = data[high];
     int i = low - 1;
 
-    for (int j = low; j < high; ++j) {
-        if (data[j] <= pivot) {
+    for (int j = low; j <= high - 1; ++j) {
+        if (data[j] < pivot) {
             ++i;
             swap(data[i], data[j]);
         }
     }
 
     swap(data[i+1], data[high]);
-    return Indexes(i + 1, low, high);
+    return Indexes(low, i + 1, high);
 }
+
+#include <queue>
+#include "BS_thread_pool.hpp"
+#include "BS_thread_pool_utils.hpp"
+
+#include <algorithm>
+
+#include <span>
+
+// задача тред пула - получать задачу, которая будет выполняться в отдельном потоке
+// специфика данного тред пула, что он должен брать спан, сортировать его и отдавать два отсортированных спана
+//
+
+template<typename T>
+class ThreadPool{
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool(ThreadPool&&) = delete;
+    ThreadPool& operator=(const ThreadPool&) = delete;
+    ThreadPool& operator=(ThreadPool&&) = delete;
+
+public:
+
+    span<T> getSpan() const;
+
+private:
+    std::vector<std::thread> m_threads;
+};
 
 template <typename T>
 void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
@@ -278,7 +222,7 @@ void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
     //  [i, low, high] = queue.front();
     //  queue.pop();
     //  if low < high
-    //      std::future<[i, low, high]> future_indexes1 = pool.submit_task(divideByPivot(arr, low, i);
+    //      std::future<[i, low, high]> future_indexes1 = pool.submit_task(divideByPivot(arr, low, i-1);
     //      futures.push_back(future_indexes1);
     //      std::future<[i, low, high]> future_indexes2 = pool.submit_task(divideByPivot(arr, i+1, high);
     //      futures.push_back(future_indexes2);
@@ -286,29 +230,33 @@ void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
     //  for (auto it:futures)
     //      queue.push_back(it.get());
     // !need more generic
-}
+    //
+    // interfaces
+    // components: thread_pool where jobs are executed + functor
+    //
+    // loop
+    //   thread_pool(partition(data))
 
-template <typename T>
-void MultithreadQSort<T>::quickSort(std::vector<T>& data, int low, int high, int depth) {
-    while (low < high) {
-        int pi = divideByPivot(data, low, high);
-//        threadPool.push();
+//    auto it = std::partition(data.begin(), data.end(), std::less<>);
+
+    if (data.empty() or data.size() == 1) {
+        return;
     }
-//    //    0 3 7
-//    // -1 0
-//    if (low < high) {
-//        int pi = divideByPivotHoare(data, low, high);
-//
-//        if (depth < MAX_DEPTH) {
-//            std::thread leftThread(&MultithreadQSort<T>::quickSort, this, std::ref(data), low, pi, depth + 1);
-//            leftThread.join();
-//
-//            quickSort(data, pi + 1, high, depth + 1);       // Recursively sort after partition
-//        } else {
-//            quickSort(data, low, pi, depth + 1);        // Recursively sort before partition
-//            quickSort(data, pi + 1, high, depth + 1);       // Recursively sort after partition
-//        }
-//    }
+
+    // написать АПИ в headers
+    // все span -> span0/1
+    // [s0, s1] = divide[s];
+    // [s2, s3] = divide[s0];
+    // [s4, s5] = divide[s1];
+
+    // threadPool(8);
+    // threadPool.push_back(std::span data);
+    // std::span span = threadPool.getSpan();
+    // 1 -> 8
+    // 8 -> 1
+    // when its done? what is the condition
+    // video, how many algorithm exist
+
 }
 
 //==============================================================================================
@@ -427,18 +375,18 @@ TEST(test_quick_sort, test_basic_int)
 {
     DataSet<int> dataSet;
     int id = 0;
-//    dataSet.data[id++] = {};
-//    dataSet.data[id++] = {1};
-//    dataSet.data[id++] = {11, 2};
-//    dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5};
+    dataSet.data[id++] = {};
+    dataSet.data[id++] = {1};
+    dataSet.data[id++] = {11, 2};
+    dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5};
 //    dataSet.data[id++] = getRandomVec<int>(2, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<int>(2);
-    dataSet.data[id++] = getRandomVec<int>(10, -1000, 1000);
-    dataSet.data[id++] = getSortedVec<int>(10);
+//    dataSet.data[id++] = getRandomVec<int>(10, -1000, 1000);
+//    dataSet.data[id++] = getSortedVec<int>(10);
 //    dataSet.data[id++] = getRandomVec<int>(1000, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<int>(1000);
-    dataSet.data[id++] = getRandomVec<int>(100000, -1000, 1000);
-    dataSet.data[id++] = getSortedVec<int>(100000);
+//    dataSet.data[id++] = getRandomVec<int>(100000, -1000, 1000);
+//    dataSet.data[id++] = getSortedVec<int>(100000);
 //    dataSet.data[id++] = getRandomVec<int>(100000000, -1000, 1000);
 
     Sorter<int> sorter;
@@ -447,30 +395,37 @@ TEST(test_quick_sort, test_basic_int)
     sorter.sort(dataSet, std::make_unique<StandartQSort<int>>());
     cout << "SimpleQSort:" << endl;
     sorter.sort(dataSet, std::make_unique<SimpleQSort<int>>());
-    cout << "MultithreadQSort:" << endl;
-    sorter.sort(dataSet, std::make_unique<MultithreadQSort<int>>());
+//    cout << "MultithreadQSort:" << endl;
+//    sorter.sort(dataSet, std::make_unique<MultithreadQSort<int>>());
 
     EXPECT_TRUE(sorter.verifyEqulityOfData());
+}
+
+
+// Function that performs work and sets the result via promise
+int calculateSquare(int value) {
+    return value * value;
+//    resultPromise.set_value(result);  // Set the result in the promise
 }
 
 TEST(test_quick_sort, test_basic_double)
 {
     DataSet<double> dataSet;
     int id = 0;
-    //    dataSet.data[id++] = {};
-    //    dataSet.data[id++] = {1};
-    //    dataSet.data[id++] = {11, 2};
-    //    dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5};
-    dataSet.data[id++] = getRandomVec<double>(2, -1000, 1000);
-    dataSet.data[id++] = getSortedVec<double>(2);
-    dataSet.data[id++] = getRandomVec<double>(10, -1000, 1000);
-    dataSet.data[id++] = getSortedVec<double>(10);
+//        dataSet.data[id++] = {};
+//        dataSet.data[id++] = {1};
+//        dataSet.data[id++] = {11, 2};
+//        dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5};
+//    dataSet.data[id++] = getRandomVec<double>(2, -1000, 1000);
+//    dataSet.data[id++] = getSortedVec<double>(2);
+//    dataSet.data[id++] = getRandomVec<double>(10, -1000, 1000);
+//    dataSet.data[id++] = getSortedVec<double>(10);
     dataSet.data[id++] = getRandomVec<double>(1000, -1000, 1000);
     dataSet.data[id++] = getSortedVec<double>(1000);
-    dataSet.data[id++] = getRandomVec<double>(1000000, -1000, 1000);
-    dataSet.data[id++] = getSortedVec<double>(1000000);
-    dataSet.data[id++] = getRandomVec<double>(10000000, -1000, 1000);
-    dataSet.data[id++] = getSortedVec<double>(10000000);
+    dataSet.data[id++] = getRandomVec<double>(100000, -1000, 1000);
+//    dataSet.data[id++] = getSortedVec<double>(100000);
+//    dataSet.data[id++] = getRandomVec<double>(10000000, -1000, 1000);
+//    dataSet.data[id++] = getSortedVec<double>(10000000);
 
     Sorter<double> sorter;
 
@@ -478,8 +433,10 @@ TEST(test_quick_sort, test_basic_double)
     sorter.sort(dataSet, std::make_unique<StandartQSort<double>>());
     cout << "SimpleQSort:" << endl;
     sorter.sort(dataSet, std::make_unique<SimpleQSort<double>>());
-    cout << "MultithreadQSort:" << endl;
-    sorter.sort(dataSet, std::make_unique<MultithreadQSort<double>>());
+//    cout << "MultithreadQSort:" << endl;
+//    sorter.sort(dataSet, std::make_unique<MultithreadQSort<double>>());
+
+
 
     EXPECT_TRUE(sorter.verifyEqulityOfData());
 }

@@ -6,16 +6,21 @@
 using namespace std;
 using namespace testing;
 
-#include <vector>
 #include <algorithm>
-#include <thread>
-#include <map>
-#include <random>
 #include <cstdlib>
 #include <future>
-#include <stack>
+#include <map>
+#include <queue>
+#include <random>
 #include <span>
+#include <stack>
+#include <thread>
+#include <vector>
 
+template<typename T>
+class MyThreadPool;
+
+//==============================================================================================
 
 template<typename T>
 class ISorter {
@@ -40,8 +45,26 @@ public:
 protected:
     void nonRecursiveSort(std::vector<T>& data);
     void quickSort(std::vector<T>& data, int low, int high);
+
+    std::pair<std::span<T>,std::span<T>> splitByPivot(span<T> data);
+
     int divideByPivotLomuto(vector<T>& data, int low, int high);
 };
+template <typename T>
+std::pair<std::span<T>,std::span<T>>  SimpleQSort<T>::splitByPivot(span<T> data)
+{
+    // Select pivot as the last element
+    T pivotLomuto = data[data.size() - 1];
+
+    // Partition around the pivot
+    typename std::span<T>::iterator pivot = std::partition(data.begin(), data.end() - 1,
+                                                         [&](const T& value) { return value < pivotLomuto; });
+
+    // Place the pivot in its correct sorted position
+    std::iter_swap(pivot, data.end() - 1);
+
+    return {{data.begin(), pivot}, {pivot + 1, data.end()}};
+}
 
 template <typename T>
 void SimpleQSort<T>::nonRecursiveSort(std::vector<T>& data)
@@ -70,25 +93,18 @@ void SimpleQSort<T>::nonRecursiveSort(std::vector<T>& data)
             continue;
         }
 
-        auto pivotLomuto = curInterval[curInterval.size() -1];
-        auto it = std::partition(curInterval.begin(), curInterval.end(), [&pivotLomuto](int num){return num < pivotLomuto;});
-        std::nth_element(curInterval.begin(), it, curInterval.end());
+        const auto splitSpans = splitByPivot(curInterval);
 
-        // all sorted, continue
-        if (it == curInterval.end()) {
-            continue;
-        }
-
-        spanStack.push({curInterval.begin(), it});
-        spanStack.push({++it, curInterval.end()});
+        spanStack.push(splitSpans.first);
+        spanStack.push(splitSpans.second);
     }
 }
 
 template <typename T>
 void SimpleQSort<T>::sort(std::vector<T>& data)
 {
-    nonRecursiveSort(data);
-//    quickSort(data, 0, data.size() - 1);
+//    nonRecursiveSort(data);
+    quickSort(data, 0, data.size() - 1);
 }
 
 template <typename T>
@@ -117,13 +133,13 @@ int SimpleQSort<T>::divideByPivotLomuto(vector<T>& data, int low, int high) {
 
 template <typename T>
 void SimpleQSort<T>::quickSort(vector<T>& data, int low, int high) {
-//    nonRecursiveSort(data);
-    if (low < high) {
-        // Lomuto partition scheme
-        int pivotIndex = divideByPivotLomuto(data, low, high);
-        quickSort(data, low, pivotIndex - 1);
-        quickSort(data, pivotIndex + 1, high);
-    }
+    nonRecursiveSort(data);
+//    if (low < high) {
+//        // Lomuto partition scheme
+//        int pivotIndex = divideByPivotLomuto(data, low, high);
+//        quickSort(data, low, pivotIndex - 1);
+//        quickSort(data, pivotIndex + 1, high);
+//    }
 }
 
 //==============================================================================================
@@ -161,102 +177,366 @@ template <typename T>
 void MultithreadQSort<T>::sort(std::vector<T>& data)
 {
     nonRecursiveQuickSort(data);
-//    for (const auto& it: data) {
-//        cout << it << "\t";
-//    }
-//    cout << endl;
 }
 
-template <typename T>
-Indexes MultithreadQSort<T>::divideByPivot(vector<T>& data, int low, int high)
-{
-    T pivot = data[high];
-    int i = low - 1;
-
-    for (int j = low; j <= high - 1; ++j) {
-        if (data[j] < pivot) {
-            ++i;
-            swap(data[i], data[j]);
-        }
-    }
-
-    swap(data[i+1], data[high]);
-    return Indexes(low, i + 1, high);
-}
-
-#include <queue>
-#include "BS_thread_pool.hpp"
-#include "BS_thread_pool_utils.hpp"
-
-#include <algorithm>
-
-#include <span>
 
 // задача тред пула - получать задачу, которая будет выполняться в отдельном потоке
 // специфика данного тред пула, что он должен брать спан, сортировать его и отдавать два отсортированных спана
 //
 
-template<typename T>
-class ThreadPool{
-    ThreadPool(const ThreadPool&) = delete;
-    ThreadPool(ThreadPool&&) = delete;
-    ThreadPool& operator=(const ThreadPool&) = delete;
-    ThreadPool& operator=(ThreadPool&&) = delete;
-
+template <typename T>
+class ThreadSafeQueue {
 public:
+    void push(std::span<T> data);
 
-    span<T> getSpan() const;
+    std::span<T> get();
 
+    size_t getSize();
 private:
-    std::vector<std::thread> m_threads;
+    std::mutex m_mutex;
+    std::condition_variable m_condVar;
+    std::queue<std::span<T>> m_queue;
 };
 
 template <typename T>
-void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
-    // до каких пор будем вызывать?
-    // thread_pool(8)
-    // [i, low, high] = divideByPivot(arr, low, high);
-    // queue.push_back([i, low, high])
-    // vector<future> futures; reserve(8)
-    // while (not queue.empty)
-    //  [i, low, high] = queue.front();
-    //  queue.pop();
-    //  if low < high
-    //      std::future<[i, low, high]> future_indexes1 = pool.submit_task(divideByPivot(arr, low, i-1);
-    //      futures.push_back(future_indexes1);
-    //      std::future<[i, low, high]> future_indexes2 = pool.submit_task(divideByPivot(arr, i+1, high);
-    //      futures.push_back(future_indexes2);
-    //
-    //  for (auto it:futures)
-    //      queue.push_back(it.get());
-    // !need more generic
-    //
-    // interfaces
-    // components: thread_pool where jobs are executed + functor
-    //
-    // loop
-    //   thread_pool(partition(data))
+size_t ThreadSafeQueue<T>::getSize()
+{
+    std::lock_guard<std::mutex> lockGuard(m_mutex);
+    return m_queue.size();
+}
 
-//    auto it = std::partition(data.begin(), data.end(), std::less<>);
+template <typename T>
+void ThreadSafeQueue<T>::push(span<T> data) {
+    std::lock_guard<std::mutex> lockGuard(m_mutex);
+    m_queue.push(data);
+//    m_condVar.notify_one();
+}
 
-    if (data.empty() or data.size() == 1) {
+template <typename T>
+span<T> ThreadSafeQueue<T>::get()
+{
+//    std::unique_lock<std::mutex> uniqueLock(m_mutex);
+//    m_condVar.wait(uniqueLock, [&]{return !m_queue.empty();});
+    auto data = m_queue.front();
+    m_queue.pop();
+    return data;
+}
+
+
+
+/*
+ * MyThreadPool class accepts jobs aka functors, push it the jobs queue
+ * if there is available thread
+ */
+template<typename T>
+class MyThreadPool
+{
+    MyThreadPool(const MyThreadPool&) = delete;
+    MyThreadPool(MyThreadPool&&) = delete;
+    MyThreadPool& operator=(const MyThreadPool&) = delete;
+    MyThreadPool& operator=(MyThreadPool&&) = delete;
+
+public:
+
+    explicit MyThreadPool(const size_t numThreads = 8);
+
+    ~MyThreadPool();
+
+    void start();
+
+    void stop();
+
+    void push(std::span<T> data);
+
+//    void push();
+
+    std::span<T> getSpan();
+
+    size_t getResultsSize();
+protected:
+
+private:
+    unique_ptr<ThreadSafeQueue<T>> jobsResultsQueue;
+
+    std::vector<std::thread> m_threads;
+    std::queue<std::span<T>> m_spanQueue;
+    std::queue<std::span<T>> m_spanResQueue;
+    // at the beginning thread pool sleeps
+    std::atomic_bool m_stop = true;
+    size_t m_numThreads = 2;
+
+    std::condition_variable m_jobCondVar;
+    std::mutex m_jobsMutex;
+    std::mutex m_jobsResMutex;
+};
+
+template <typename T>
+size_t MyThreadPool<T>::getResultsSize()
+{
+    return ;
+}
+
+template <typename T>
+MyThreadPool<T>::MyThreadPool(const size_t numThreads) {
+    if (numThreads < 1) {
+        throw std::invalid_argument("Wrong threads number");
+    }
+    m_numThreads = numThreads;
+}
+
+template <typename T>
+MyThreadPool<T>::~MyThreadPool() {
+    stop();
+}
+
+template <typename T>
+void MyThreadPool<T>::start() {
+
+    // thread pool is started already
+    if (m_stop == false) {
         return;
     }
 
-    // написать АПИ в headers
-    // все span -> span0/1
-    // [s0, s1] = divide[s];
-    // [s2, s3] = divide[s0];
-    // [s4, s5] = divide[s1];
+    auto func = [this]() {
+        while (true) {
+            std::unique_lock<std::mutex> uniqueLock(m_jobsMutex);
+            m_jobCondVar.wait(uniqueLock,[&] { return !m_spanQueue.empty() or m_stop;});
+            if (m_stop) {
+                break;
+            }
+            auto data = m_spanQueue.front();
+            m_spanQueue.pop();
+            uniqueLock.unlock();
 
-    // threadPool(8);
-    // threadPool.push_back(std::span data);
-    // std::span span = threadPool.getSpan();
-    // 1 -> 8
-    // 8 -> 1
-    // when its done? what is the condition
-    // video, how many algorithm exist
+            auto devideSpan = [](span<T> data) -> std::pair<span<T>, span<T>> {
+                // Select pivot as the last element
+                T pivotLomuto = data[data.size() - 1];
 
+                // Partition around the pivot
+                auto pivot = std::partition(data.begin(), data.end() - 1,
+                                                                       [&](const T& value) { return value < pivotLomuto; });
+
+                // Place the pivot in its correct sorted position
+                std::iter_swap(pivot, data.end() - 1);
+
+                return {{data.begin(), pivot}, {pivot + 1, data.end()}};
+            };
+
+            auto spanPair = devideSpan(data);
+
+            std::lock_guard lockGuard(m_jobsResMutex);
+            m_spanResQueue.push(spanPair.first);
+            m_spanResQueue.push(spanPair.second);
+        }
+    };
+
+    m_stop = true;
+    for (size_t i = 0; i < m_numThreads; ++i) {
+        m_threads.emplace_back(std::thread(func));
+    }
+
+    m_jobCondVar.notify_all();
+}
+
+template <typename T>
+void MyThreadPool<T>::push(std::span<T> data) {
+    std::unique_lock<std::mutex> uniqueLock(m_jobsMutex);
+    m_spanQueue.push(data);
+    uniqueLock.unlock();
+    m_jobCondVar.notify_all();
+}
+
+template <typename T>
+span<T> MyThreadPool<T>::getSpan()
+{
+    auto res = m_spanResQueue.front();
+    m_spanResQueue.pop();
+    return res;
+}
+
+template <typename T>
+void MyThreadPool<T>::stop() {
+    if (not m_stop) {
+        m_stop = true;
+    }
+
+    m_jobCondVar.notify_all();
+
+    for (auto& curThread:m_threads) {
+        curThread.join();
+    }
+}
+
+template <typename T>
+std::pair<std::span<T>,std::span<T>> splitByPivot(span<T> data)
+{
+    // Select pivot as the last element
+    T pivotLomuto = data[data.size() - 1];
+
+    // Partition around the pivot
+    auto pivot = std::partition(data.begin(), data.end() - 1,
+                                             [&](const T& value) { return value < pivotLomuto; });
+
+    // Place the pivot in its correct sorted position
+    std::iter_swap(pivot, data.end() - 1);
+
+    return {{data.begin(), pivot}, {pivot + 1, data.end()}};
+}
+
+
+class ThreadPool {
+public:
+    ThreadPool(size_t);
+    template<class F, class... Args>
+    auto enqueue(F&& f, Args&&... args)
+        -> std::future<typename std::result_of<F(Args...)>::type>;
+    ~ThreadPool();
+private:
+    // need to keep track of threads so we can join them
+    std::vector< std::thread > workers;
+    // the task queue
+    std::queue< std::function<void()> > tasks;
+
+    // synchronization
+    std::mutex queue_mutex;
+    std::condition_variable condition;
+    bool stop;
+};
+
+// the constructor just launches some amount of workers
+inline ThreadPool::ThreadPool(size_t threads)
+    :   stop(false)
+{
+    for(size_t i = 0;i<threads;++i)
+        workers.emplace_back(
+            [this]
+            {
+                for(;;)
+                {
+                    std::function<void()> task;
+
+                    {
+                        std::unique_lock<std::mutex> lock(this->queue_mutex);
+                        this->condition.wait(lock,
+                                             [this]{ return this->stop || !this->tasks.empty(); });
+                        if(this->stop && this->tasks.empty())
+                            return;
+                        task = std::move(this->tasks.front());
+                        this->tasks.pop();
+                    }
+
+                    task();
+                }
+            }
+        );
+}
+
+// add new work item to the pool
+template<class F, class... Args>
+auto ThreadPool::enqueue(F&& f, Args&&... args)
+    -> std::future<typename std::result_of<F(Args...)>::type>
+{
+    using return_type = typename std::result_of<F(Args...)>::type;
+
+    auto task = std::make_shared< std::packaged_task<return_type()> >(
+        std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+    );
+
+    std::future<return_type> res = task->get_future();
+    {
+        std::unique_lock<std::mutex> lock(queue_mutex);
+
+        // don't allow enqueueing after stopping the pool
+        if(stop)
+            throw std::runtime_error("enqueue on stopped ThreadPool");
+
+        tasks.emplace([task](){ (*task)(); });
+    }
+    condition.notify_one();
+    return res;
+}
+
+// the destructor joins all threads
+inline ThreadPool::~ThreadPool()
+{
+    {
+        std::unique_lock<std::mutex> lock(queue_mutex);
+        stop = true;
+    }
+    condition.notify_all();
+    for(std::thread &worker: workers)
+        worker.join();
+}
+
+template <typename T>
+void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
+
+//    ThreadPool<T> threadPool(8);
+//    threadPool.push_span(data)
+//    stackSize = spanStack.size();
+//    counter = 0;
+//    while (counter != data.size)
+    //
+    //    CONSUME FROM STACK TO THREAD POOL
+    //    while (not spanStack.empty())
+    //        span = spanStack.pop();
+    //        if (span.size() = 0/1)
+    //             counter++; continue;
+    //        threadPool.pushSpans(span)
+    //
+    //     PRODUCE TO STACK FROM THREAD POOL
+    //     while (threadPool.queueSpans.size() != 0)
+    //         stack.push(threadPool.getSpan());
+
+    // stack --span(0..n)--> threadPool.queueSpans
+    // threadPool.queueSpans --span(0..n)--> stack
+
+    MyThreadPool<T> threadPool(8);
+    threadPool.start();
+
+    stack<std::span<T>> spanStack;
+    spanStack.push(data);
+
+    size_t counter = 0;
+    //used for condition that every time when we send a span to threadpool we should get 2 spans
+    size_t futureStackSize = 0;
+
+    while (counter != data.size()) {
+        while(not spanStack.empty()) {
+            auto curSpan = spanStack.top();
+            spanStack.pop();
+            if (curSpan.empty() or curSpan.size() == 1) {
+                ++counter;
+                continue;
+            }
+
+            ++futureStackSize;
+            threadPool.push(curSpan);
+        }
+
+        futureStackSize *= 2;
+        // wait until thread pool fill all results
+        while (futureStackSize != threadPool.getResultsSize()) {
+        }
+
+
+        for (int i = 0; i < futureStackSize; ++i) {
+            spanStack.push(threadPool.getSpan());
+        }
+
+        futureStackSize = 0;
+    }
+
+//    ThreadPool threadPool(6);
+
+//    auto spans = threadPool.enqueue(devideSpan, data);
+
+//    auto pivot = getPivot(data);
+//    std::span<T> mySpan(data.begin(), pivot);
+//    spanStack.push({data.begin(), pivot});
+
+    int a = 0;
+    threadPool.stop();
 }
 
 //==============================================================================================
@@ -375,8 +655,8 @@ TEST(test_quick_sort, test_basic_int)
 {
     DataSet<int> dataSet;
     int id = 0;
-    dataSet.data[id++] = {};
-    dataSet.data[id++] = {1};
+//    dataSet.data[id++] = {};
+//    dataSet.data[id++] = {1};
     dataSet.data[id++] = {11, 2};
     dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5};
 //    dataSet.data[id++] = getRandomVec<int>(2, -1000, 1000);
@@ -395,8 +675,8 @@ TEST(test_quick_sort, test_basic_int)
     sorter.sort(dataSet, std::make_unique<StandartQSort<int>>());
     cout << "SimpleQSort:" << endl;
     sorter.sort(dataSet, std::make_unique<SimpleQSort<int>>());
-//    cout << "MultithreadQSort:" << endl;
-//    sorter.sort(dataSet, std::make_unique<MultithreadQSort<int>>());
+    cout << "MultithreadQSort:" << endl;
+    sorter.sort(dataSet, std::make_unique<MultithreadQSort<int>>());
 
     EXPECT_TRUE(sorter.verifyEqulityOfData());
 }
@@ -412,18 +692,18 @@ TEST(test_quick_sort, test_basic_double)
 {
     DataSet<double> dataSet;
     int id = 0;
-//        dataSet.data[id++] = {};
-//        dataSet.data[id++] = {1};
-//        dataSet.data[id++] = {11, 2};
-//        dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5};
+//    dataSet.data[id++] = {};
+    dataSet.data[id++] = {1};
+    dataSet.data[id++] = {11, 2};
+//    dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5};
 //    dataSet.data[id++] = getRandomVec<double>(2, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(2);
 //    dataSet.data[id++] = getRandomVec<double>(10, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(10);
-    dataSet.data[id++] = getRandomVec<double>(1000, -1000, 1000);
-    dataSet.data[id++] = getSortedVec<double>(1000);
+//    dataSet.data[id++] = getRandomVec<double>(1000, -1000, 1000);
+//    dataSet.data[id++] = getSortedVec<double>(1000);
     dataSet.data[id++] = getRandomVec<double>(100000, -1000, 1000);
-//    dataSet.data[id++] = getSortedVec<double>(100000);
+//    dataSet.data[id++] = getSortedVec<double>(50000);
 //    dataSet.data[id++] = getRandomVec<double>(10000000, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(10000000);
 
@@ -433,8 +713,8 @@ TEST(test_quick_sort, test_basic_double)
     sorter.sort(dataSet, std::make_unique<StandartQSort<double>>());
     cout << "SimpleQSort:" << endl;
     sorter.sort(dataSet, std::make_unique<SimpleQSort<double>>());
-//    cout << "MultithreadQSort:" << endl;
-//    sorter.sort(dataSet, std::make_unique<MultithreadQSort<double>>());
+    cout << "MultithreadQSort:" << endl;
+    sorter.sort(dataSet, std::make_unique<MultithreadQSort<double>>());
 
 
 

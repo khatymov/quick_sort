@@ -235,7 +235,6 @@ public:
 private:
     std::vector<std::thread> m_threads;
     std::queue<std::function<void()>> m_jobQueue;
-    std::queue<std::span<T>> m_spanResQueue;
     // at the beginning thread pool sleeps
     std::atomic_bool m_stop = true;
     size_t m_numThreads = 6;
@@ -328,6 +327,8 @@ void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
     // create shared ptr of thread safe queue(TSQ) where we can store results of executed functor
     std::shared_ptr<ThreadSafeQueue<T>> threadSafeQueue = std::make_shared<ThreadSafeQueue<T>>();
 
+    std::weak_ptr<ThreadSafeQueue<T>> weakThreadSafeQueue(threadSafeQueue);
+
     // create a functor that accepts span and a shared pointer of TSQ
     //  functor should:
     //      - split a span into two spans
@@ -339,8 +340,6 @@ void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
     // create a stack for spans and push initial data
     std::stack<std::span<T>> spanStack;
     spanStack.push(data);
-    // used as an indicator that an array is sorted when elementsCounter = data.size()
-//    int elementsCounter = 0;
     // create a while loop where finished condition will be counter of spans aka data size.
     // When counter lower than elements in data - keep going :)
     while (not spanStack.empty()) {
@@ -353,13 +352,12 @@ void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
             spanStack.pop();
             //if current span is empty or equal to 1 - means everything is sorted.
             if (curSpan.empty() or curSpan.size() == 1) {
-//                ++elementsCounter;
                 continue;
             }
             // increment expectedSpansNumber -> further we expected double of those elements
             ++expectedSpansNumber;
             // push functor to thread pool
-            myThreadPool.push([&curSpan, &threadSafeQueue](){
+            myThreadPool.push([curSpan, weakThreadSafeQueue](){
                 // Select pivot as the last element
                 T pivotLomuto = curSpan[curSpan.size() - 1];
 
@@ -370,8 +368,11 @@ void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
                 // Place the pivot in its correct sorted position
                 std::iter_swap(pivot, curSpan.end() - 1);
 
-                threadSafeQueue->push({curSpan.begin(), pivot});
-                threadSafeQueue->push({pivot + 1, curSpan.end()});
+                auto queuePtr = weakThreadSafeQueue.lock();
+                if (queuePtr) {
+                    queuePtr->push({curSpan.begin(), pivot});
+                    queuePtr->push({pivot + 1, curSpan.end()});
+                }
             });
         }
 
@@ -389,12 +390,9 @@ void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
 
         // if size of queue is met our expected size then pop element from queue and push it to stack
         for (int i = 0; i < expectedSpansNumber; ++i) {
-            // count pivots
-//            ++elementsCounter;
             spanStack.push(threadSafeQueue->get());
         }
     }
-
 
     // stop thread pool, everything is sorted
     myThreadPool.stop();
@@ -527,7 +525,7 @@ TEST(test_quick_sort, test_basic_int)
 //    dataSet.data[id++] = getSortedVec<int>(10);
     dataSet.data[id++] = getRandomVec<int>(1000, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<int>(1000);
-//    dataSet.data[id++] = getRandomVec<int>(100000, -1000, 1000);
+    dataSet.data[id++] = getRandomVec<int>(10000, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<int>(100000);
 //    dataSet.data[id++] = getRandomVec<int>(100000000, -1000, 1000);
 
@@ -566,7 +564,7 @@ TEST(test_quick_sort, test_basic_double)
 //    dataSet.data[id++] = getSortedVec<double>(1000);
     dataSet.data[id++] = getRandomVec<double>(100000, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(50000);
-//    dataSet.data[id++] = getRandomVec<double>(10000000, -1000, 1000);
+    dataSet.data[id++] = getRandomVec<double>(1000000, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(10000000);
 
     Sorter<double> sorter;

@@ -13,6 +13,7 @@ Timer::~Timer() {
     // Calculate duration
     const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - startTime);
     // Extract seconds and milliseconds
+    // TODO: make it in nanosec, 1,000,333,777 nanosec
     const auto microsec  = std::chrono::duration_cast<std::chrono::microseconds>(duration);
     const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
     const auto milliseconds = duration - seconds;

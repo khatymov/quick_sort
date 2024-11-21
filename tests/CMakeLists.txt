@@ -8,27 +8,22 @@ SET(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
 
 find_package(GTest REQUIRED)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../my_class/my_class.cmake)
+include_directories(../src)
+
 include(${CMAKE_CURRENT_LIST_DIR}/my_class/my_class_test.cmake)
-
-include(${CMAKE_CURRENT_LIST_DIR}/../src/move/move.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/move_test/move_test.cmake)
-
-
-include_directories(${CMAKE_CURRENT_LIST_DIR}/../src)
 
 add_executable(
         ${PROJECT_NAME}
         test.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/../src/timer.h
-        ${CMAKE_CURRENT_LIST_DIR}/../src/timer.cpp
-        ${MY_CLASS}
-        ${MOVE}
         ${MY_CLASS_TEST}
-        ${MOVE_TEST}
 )
+
+# Precompiled header
+target_precompile_headers(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src/pch.h)
+
 target_link_libraries(
         ${PROJECT_NAME}
+        sort_lib
         gtest
 )
 

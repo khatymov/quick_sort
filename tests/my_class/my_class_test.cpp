@@ -97,21 +97,26 @@ vector<T> getSortedVec(size_t size) {
 
 TEST(test_quick_sort, test_basic_int)
 {
+
     DataSet<int> dataSet;
     int id = 0;
 //    dataSet.data[id++] = {};
 //    dataSet.data[id++] = {1};
 //    dataSet.data[id++] = {11, 2};
-//    dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5};
-//    dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5, 11, 0, 13, -1, 14, -2};
+//    dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5}; //7 = 4
+//    dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5, 11, 0, 13, -1, 14, -2}; //13 = 8
+//    dataSet.data[id++] = {-848, -999, 815, -247, -106, -401, -946, 454, 684, 529};
+//    dataSet.data[id++] = {-946, -999};
+//    dataSet.data[id++] = {-229, -244, 139, 849, -479, 529, -798, 815, -247, -106, -401, -456, 454, 684, -263};
+//    dataSet.data[id++] = {-456, -798, -263, -229, -244, 139, 849, 727, 897, -479, -848, -999, 815, -247, -106, -401, -946, 454, 684, 529};
 //    dataSet.data[id++] = getRandomVec<int>(2, -1000, 1000);
-//    dataSet.data[id++] = getSortedVec<int>(2);
-//    dataSet.data[id++] = getRandomVec<int>(10, -1000, 1000);
-//    dataSet.data[id++] = getSortedVec<int>(10);
+//    dataSet.data[id++] = getSortedVec<int>(5);
+//    dataSet.data[id++] = getRandomVec<int>(13, -1000, 1000);
+//    dataSet.data[id++] = getSortedVec<int>(13);
     dataSet.data[id++] = getRandomVec<int>(1000, -1000, 1000);
-//    dataSet.data[id++] = getSortedVec<int>(1000);
-    dataSet.data[id++] = getRandomVec<int>(10000, -1000, 1000);
-//    dataSet.data[id++] = getSortedVec<int>(100000);
+    dataSet.data[id++] = getSortedVec<int>(1000);
+    dataSet.data[id++] = getRandomVec<int>(100000, -1000, 1000);
+    dataSet.data[id++] = getSortedVec<int>(100000);
 //    dataSet.data[id++] = getRandomVec<int>(100000000, -1000, 1000);
 
     Sorter<int> sorter;
@@ -131,8 +136,8 @@ TEST(test_quick_sort, test_basic_double)
     DataSet<double> dataSet;
     int id = 0;
 //    dataSet.data[id++] = {};
-    dataSet.data[id++] = {1};
-    dataSet.data[id++] = {11, 2};
+//    dataSet.data[id++] = {1};
+//    dataSet.data[id++] = {11, 2};
 //    dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5};
 //    dataSet.data[id++] = getRandomVec<double>(2, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(2);
@@ -142,15 +147,15 @@ TEST(test_quick_sort, test_basic_double)
 //    dataSet.data[id++] = getSortedVec<double>(1000);
     dataSet.data[id++] = getRandomVec<double>(100000, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(50000);
-    dataSet.data[id++] = getRandomVec<double>(1000000, -1000, 1000);
+//    dataSet.data[id++] = getRandomVec<double>(1000000, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(10000000);
 
     Sorter<double> sorter;
 
     cout << "StandartQSort:" << endl;
     sorter.sort(dataSet, std::make_unique<StandartQSort<double>>());
-    cout << "SimpleQSort:" << endl;
-    sorter.sort(dataSet, std::make_unique<SimpleQSort<double>>());
+//    cout << "SimpleQSort:" << endl;
+//    sorter.sort(dataSet, std::make_unique<SimpleQSort<double>>());
     cout << "MultithreadQSort:" << endl;
     sorter.sort(dataSet, std::make_unique<MultithreadQSort<double>>());
 

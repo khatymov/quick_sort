@@ -62,7 +62,6 @@ void SimpleQSort<T>::nonRecursiveSort(std::vector<T>& data)
     }
 }
 
-
 template <typename T>
 std::pair<std::span<T>,std::span<T>>  SimpleQSort<T>::splitByPivot(span<T> data)
 {
@@ -71,13 +70,10 @@ std::pair<std::span<T>,std::span<T>>  SimpleQSort<T>::splitByPivot(span<T> data)
 
     // Partition around the pivot
     typename std::span<T>::iterator pivot = std::partition(data.begin(), data.end() - 1,
-                                                           [&](const T& value) { return value < pivotLomuto; });
+                                                           [&pivotLomuto](const T& value) { return value < pivotLomuto; });
 
     // Place the pivot in its correct sorted position
     std::iter_swap(pivot, data.end() - 1);
 
     return {{data.begin(), pivot}, {pivot + 1, data.end()}};
 }
-
-
-

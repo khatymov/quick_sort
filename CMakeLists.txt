@@ -12,7 +12,7 @@ add_executable(${PROJECT_NAME}
 
 add_subdirectory(src)
 
-target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_lib)
+target_link_libraries(${PROJECT_NAME} sort_lib)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
 

@@ -149,6 +149,12 @@ void MultithreadPartitioner<T>::worker() {
             if (data.size() == 1) {
                 ++partitionCounter;
                 break;
+            } else if (data.size() == 2) {
+                partitionCounter = partitionCounter + 2;
+                if (data[0] > data[1]) {
+                    swap(data[0], data[1]);
+                }
+                break;
             }
 
             auto pivot = getPivotIterator(data);
@@ -162,6 +168,13 @@ void MultithreadPartitioner<T>::worker() {
 
             if (rightSpan.size() == 1) {
                 ++partitionCounter;
+                continue;
+            }
+            else if (rightSpan.size() == 2) {
+                partitionCounter = partitionCounter + 2;
+                if (rightSpan[0] > rightSpan[1]) {
+                    swap(rightSpan[0], rightSpan[1]);
+                }
                 continue;
             }
 

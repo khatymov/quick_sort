@@ -17,34 +17,29 @@ public:
 
     void sort(std::vector<T>& data) override;
 
+    static void sort(std::span<T> data);
 protected:
-    void nonRecursiveSort(std::vector<T>& data);
-    std::pair<std::span<T>,std::span<T>> splitByPivot(span<T> data);
+
+    // partition span
+    static inline std::span<T>::iterator getPivotIterator(std::span<T> data);
 };
 
 template <typename T>
-void SimpleQSort<T>::sort(std::vector<T>& data)
+span<T>::iterator SimpleQSort<T>::getPivotIterator(span<T> data)
 {
-    nonRecursiveSort(data);
+    auto middle = data.begin() + ((data.end() - data.begin()) / 2);
+    std::iter_swap(middle, data.end() - 1);
+    // Partition around the pivot
+    middle = std::partition(data.begin(), data.end() - 1, [last = data.end()](const T& value) { return value < *(last - 1); });
+    // Place the pivot in its correct sorted position
+    std::iter_swap(middle, data.end() - 1);
+
+    return middle;
 }
 
+
 template <typename T>
-void SimpleQSort<T>::nonRecursiveSort(std::vector<T>& data)
-{
-    // span = data;
-    // stack<std::span<T>> stackIn;
-    // while(not stackIn.empty())
-    //  curInterval = stackIn.top();
-    //  stackIn.pop();
-    //  if (interval.begin() == interval.end()--)
-    //      continue;
-    //  auto pivotLomuto = interval.end()--;
-    //  auto it = std::partition(curInterval.begin(), curInterval.end(), [&pivotLomuto](int num){return std::less<T>(*pivotLomuto)});
-    //  stackOut.push({curInterval.begin(), it});
-    //  stackOut.push({it, curInterval.end()});
-
-    // >> 'it' has its fixed place, and won't change
-
+void SimpleQSort<T>::sort(span<T> data) {
     stack<std::span<T>> spanStack;
     spanStack.push(data);
     while(not spanStack.empty()) {
@@ -55,25 +50,32 @@ void SimpleQSort<T>::nonRecursiveSort(std::vector<T>& data)
             continue;
         }
 
-        const auto splitSpans = splitByPivot(curInterval);
+        if (curInterval.size() == 2) {
+            if (curInterval[0] > curInterval[1]) {
+                std::swap(curInterval[0], curInterval[1]);
+            }
+            continue;
+        }
 
-        spanStack.push(splitSpans.first);
-        spanStack.push(splitSpans.second);
+        const auto pivot = getPivotIterator(curInterval);
+
+        std::span<T> left({curInterval.begin(), pivot});
+        std::span<T> right({pivot + 1, curInterval.end()});
+
+        if (left.size() > 1) {
+            spanStack.push(left);
+        }
+
+        if (right.size() > 1) {
+            spanStack.push(right);
+        }
     }
 }
 
+#include "my_sort.h"
+
 template <typename T>
-std::pair<std::span<T>,std::span<T>>  SimpleQSort<T>::splitByPivot(span<T> data)
+void SimpleQSort<T>::sort(std::vector<T>& data)
 {
-    // Select pivot as the last element
-    T pivotLomuto = data[data.size() - 1];
-
-    // Partition around the pivot
-    typename std::span<T>::iterator pivot = std::partition(data.begin(), data.end() - 1,
-                                                           [&pivotLomuto](const T& value) { return value < pivotLomuto; });
-
-    // Place the pivot in its correct sorted position
-    std::iter_swap(pivot, data.end() - 1);
-
-    return {{data.begin(), pivot}, {pivot + 1, data.end()}};
+    SimpleQSort<T>::sort(span<T>(data));
 }

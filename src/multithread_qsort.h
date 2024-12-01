@@ -53,25 +53,14 @@ void MultithreadQSort<T>::nonRecursiveQuickSort(std::vector<T>& data) {
     // push span to partitioner
     // get processed span (right part) from partitioner
     std::span<T> currentSpan = data;
-//    cout << "Before:" << endl;
-//    for (const auto&it: data) {
-//        cout << it << ", ";
-//    }
-//    cout << endl;
 
-    MultithreadPartitioner<T> partitioner(6);
+    MultithreadPartitioner<T> partitioner;
     while (partitioner.getNumSortedElements() <= (data.size() - 1)) {
         if (not currentSpan.empty())
         {
-            partitioner.pushDataToPartition(std::move(currentSpan));
+            partitioner.pushDataToPartition(currentSpan);
         }
         // get new span (right side)
         currentSpan = partitioner.getPartitionedSpan();
     }
-//    cout << "After:" << endl;
-//    for (const auto&it: data) {
-//        cout << it << ", ";
-//    }
-//    cout << endl;
-//    cout << partitioner.getNumSortedElements() << endl;
 }

@@ -20,17 +20,6 @@ public:
 
 template<typename T>
 void StandartQSort<T>::sort(std::vector<T>& data) {
-
-    std::qsort(data.data(), data.size(), sizeof(T), [](const void* x, const void* y)
-               {
-                   const auto arg1 = *static_cast<const T*>(x);
-                   const auto arg2 = *static_cast<const T*>(y);
-                   const auto cmp = arg1 <=> arg2;
-                   if (cmp < 0)
-                       return -1;
-                   if (cmp > 0)
-                       return 1;
-                   return 0;
-               });
+    std::sort(data.begin(), data.end());
 }
 

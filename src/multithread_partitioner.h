@@ -22,14 +22,14 @@ class MultithreadPartitioner {
     MultithreadPartitioner& operator=(MultithreadPartitioner&&) = delete;
 public:
     // ctr. Create threads and put partion function
-    explicit MultithreadPartitioner(int threadsNum = 2);
+    explicit MultithreadPartitioner(int threadsNum = (std::thread::hardware_concurrency() - 1));
     // dctr. Join threads
     ~MultithreadPartitioner();
 
     // partition in available thread
     // the idea is to partition left part of a span until size will be 0/1
     // meanwhile right part will be pushed to a queue to be handled in other threads
-    void pushDataToPartition(std::span<T>&& data);
+    void pushDataToPartition(std::span<T> data);
 
     // get a span from queue - a span that was divided in pushDataToPartition method
     std::span<T> getPartitionedSpan();
@@ -68,6 +68,8 @@ MultithreadPartitioner<T>::MultithreadPartitioner(int threadsNum) {
         throw std::invalid_argument("Wrong value of threads number");
     }
 
+    cout << "Number of threads: " << threadsNum << endl;
+
     m_stop = false;
     for (int i = 0; i < threadsNum; ++i) {
         m_threads.emplace_back(std::thread(&MultithreadPartitioner::worker, this));
@@ -88,7 +90,7 @@ MultithreadPartitioner<T>::~MultithreadPartitioner() {
 }
 
 template <typename T>
-void MultithreadPartitioner<T>::pushDataToPartition(std::span<T>&& data) {
+void MultithreadPartitioner<T>::pushDataToPartition(std::span<T> data) {
     std::unique_lock<std::mutex> uniqueLock(m_mtxSpanIn);
     m_inSpansForProcessing.push(std::move(data));
     uniqueLock.unlock();
@@ -117,9 +119,6 @@ size_t MultithreadPartitioner<T>::getNumSortedElements() const
 template <typename T>
 std::span<T>::iterator MultithreadPartitioner<T>::getPivotIterator(std::span<T> data)
 {
-
-    // Select pivot as the last element
-//    T pivotLomuto = data[data.size() - 1];
     auto middle = data.begin() + ((data.end() - data.begin()) / 2);
     std::iter_swap(middle, data.end() - 1);
     // Partition around the pivot
@@ -129,6 +128,19 @@ std::span<T>::iterator MultithreadPartitioner<T>::getPivotIterator(std::span<T> 
 
     return middle;
 }
+
+/*
+ * The main purpose of this routine is to sort a span.
+ * For sorting we use quick sort technique (partitioning).
+ * If a span after partitioning is a quite big - give a smaller part to the another thread for sorting.
+ * The remaining part sorts in the current thread.
+ */
+
+// size of span that's worth to send for sorting to another thread
+constexpr size_t THRESHOLD_SIZE_TO_SORT = 32768*1;
+
+#include "simple_sort.h"
+#include "my_sort.h"
 
 template <typename T>
 void MultithreadPartitioner<T>::worker() {
@@ -145,43 +157,36 @@ void MultithreadPartitioner<T>::worker() {
         locker.unlock();
 
         int partitionCounter = 0;
-        while (not data.empty()) {
-            if (data.size() == 1) {
-                ++partitionCounter;
-                break;
-            } else if (data.size() == 2) {
-                partitionCounter = partitionCounter + 2;
-                if (data[0] > data[1]) {
-                    swap(data[0], data[1]);
-                }
-                break;
-            }
-
-            auto pivot = getPivotIterator(data);
+        // got a span.
+        while (data.size() > THRESHOLD_SIZE_TO_SORT) {
+            const auto pivot = getPivotIterator(data);
             ++partitionCounter;
-            std::span<T> rightSpan = {pivot + 1, data.end()};
-            data = {data.begin(), pivot};
+//            std::span<T> leftSpan = {data.begin(), pivot};
+//            std::span<T> rightSpan = {pivot + 1, data.end()};
 
-            if (rightSpan.empty()) {
-                continue;
-            }
-
-            if (rightSpan.size() == 1) {
-                ++partitionCounter;
-                continue;
-            }
-            else if (rightSpan.size() == 2) {
-                partitionCounter = partitionCounter + 2;
-                if (rightSpan[0] > rightSpan[1]) {
-                    swap(rightSpan[0], rightSpan[1]);
+            const auto leftSize = pivot - data.begin();
+            const auto rightSize = data.end() - (pivot + 1);
+            if (leftSize > rightSize)
+            {
+                {
+                    std::lock_guard<std::mutex> lockGuard(m_mtxSpanOut);
+                    m_OutSpansProcessed.push(std::span<T>({data.begin(), pivot}));
                 }
-                continue;
+                data = std::span<T>({pivot + 1, data.end()});
+            } else {
+                {
+                    std::lock_guard<std::mutex> lockGuard(m_mtxSpanOut);
+                    m_OutSpansProcessed.push(std::span<T>({pivot + 1, data.end()}));
+                }
+                data = std::span<T>({data.begin(), pivot});
             }
-
-            std::lock_guard<std::mutex> lockGuard(m_mtxSpanOut);
-            m_OutSpansProcessed.push(std::move(rightSpan));
-
         }
+
+        partitionCounter += data.size();
+
+        SimpleQSort<T>::sort(data);
+//        std::sort(data.begin(), data.end());
+//        mySort<T>(data.begin(), data.end());
 
         m_pivot.counter.fetch_add(partitionCounter);
     }

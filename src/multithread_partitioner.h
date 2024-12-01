@@ -140,7 +140,6 @@ std::span<T>::iterator MultithreadPartitioner<T>::getPivotIterator(std::span<T> 
 constexpr size_t THRESHOLD_SIZE_TO_SORT = 32768*1;
 
 #include "simple_sort.h"
-#include "my_sort.h"
 
 template <typename T>
 void MultithreadPartitioner<T>::worker() {

@@ -72,7 +72,6 @@ void SimpleQSort<T>::sort(span<T> data) {
     }
 }
 
-#include "my_sort.h"
 
 template <typename T>
 void SimpleQSort<T>::sort(std::vector<T>& data)

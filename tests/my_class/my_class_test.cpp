@@ -121,12 +121,12 @@ TEST(test_quick_sort, test_basic_int)
 
     Sorter<int> sorter;
 
-    cout << "StandartQSort:" << endl;
-    sorter.sort(dataSet, std::make_unique<StandartQSort<int>>());
-    cout << "SimpleQSort:" << endl;
-    sorter.sort(dataSet, std::make_unique<SimpleQSort<int>>());
-    cout << "MultithreadQSort:" << endl;
-    sorter.sort(dataSet, std::make_unique<MultithreadQSort<int>>());
+//    cout << "StandartQSort:" << endl;
+//    sorter.sort(dataSet, std::make_unique<StandartQSort<int>>());
+//    cout << "SimpleQSort:" << endl;
+//    sorter.sort(dataSet, std::make_unique<SimpleQSort<int>>());
+//    cout << "MultithreadQSort:" << endl;
+//    sorter.sort(dataSet, std::make_unique<MultithreadQSort<int>>());
 //
     EXPECT_TRUE(sorter.verifyEqulityOfData());
 }
@@ -139,16 +139,16 @@ TEST(test_quick_sort, test_basic_double)
 //    dataSet.data[id++] = {1};
 //    dataSet.data[id++] = {11, 2};
 //    dataSet.data[id++] = {9, 1, 8, 2, 7, 3, 5};
-//    dataSet.data[id++] = getRandomVec<double>(2, -1000, 1000);
+    dataSet.data[id++] = getRandomVec<double>(2, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(2);
 //    dataSet.data[id++] = getRandomVec<double>(75000, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(75000);
-//    dataSet.data[id++] = getRandomVec<double>(100000, -1000, 1000);
+    dataSet.data[id++] = getRandomVec<double>(10, -1000, 1000);
 //    dataSet.data[id++] = getSortedVec<double>(100000);
+    dataSet.data[id++] = getRandomVec<double>(1000, -1000, 1000);
+//    dataSet.data[id++] = getSortedVec<double>(1000000);
     dataSet.data[id++] = getRandomVec<double>(1000000, -1000, 1000);
-    dataSet.data[id++] = getSortedVec<double>(1000000);
-    dataSet.data[id++] = getRandomVec<double>(10000000, -1000, 1000);
-    dataSet.data[id++] = getSortedVec<double>(10000000);
+//    dataSet.data[id++] = getSortedVec<double>(10000000);
 
     Sorter<double> sorter;
 

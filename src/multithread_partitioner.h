@@ -94,7 +94,7 @@ void MultithreadPartitioner<T>::pushDataToPartition(std::span<T> data) {
     std::unique_lock<std::mutex> uniqueLock(m_mtxSpanIn);
     m_inSpansForProcessing.push(std::move(data));
     uniqueLock.unlock();
-    m_CVSpanArrived.notify_all();
+    m_CVSpanArrived.notify_one();
 }
 
 
@@ -137,7 +137,8 @@ std::span<T>::iterator MultithreadPartitioner<T>::getPivotIterator(std::span<T> 
  */
 
 // size of span that's worth to send for sorting to another thread
-constexpr size_t THRESHOLD_SIZE_TO_SORT = 32768*1;
+//32 kb
+constexpr size_t THRESHOLD_SIZE_TO_SORT = 32768*1; //8388608
 
 #include "simple_sort.h"
 #include "my_sort.h"
@@ -185,8 +186,6 @@ void MultithreadPartitioner<T>::worker() {
         partitionCounter += data.size();
 
         SimpleQSort<T>::sort(data);
-//        std::sort(data.begin(), data.end());
-//        mySort<T>(data.begin(), data.end());
 
         m_pivot.counter.fetch_add(partitionCounter);
     }

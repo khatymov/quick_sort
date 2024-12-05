@@ -42,6 +42,7 @@ template <typename T>
 void SimpleQSort<T>::sort(span<T> data) {
     stack<std::span<T>> spanStack;
     spanStack.push(data);
+    // make it array
     while(not spanStack.empty()) {
         auto curInterval = spanStack.top();
         spanStack.pop();
@@ -62,6 +63,7 @@ void SimpleQSort<T>::sort(span<T> data) {
         std::span<T> left({curInterval.begin(), pivot});
         std::span<T> right({pivot + 1, curInterval.end()});
 
+        // add inline for 3 - 4 elems
         if (left.size() > 1) {
             spanStack.push(left);
         }
@@ -71,8 +73,6 @@ void SimpleQSort<T>::sort(span<T> data) {
         }
     }
 }
-
-#include "my_sort.h"
 
 template <typename T>
 void SimpleQSort<T>::sort(std::vector<T>& data)

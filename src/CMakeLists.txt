@@ -11,8 +11,6 @@ set(HEADER_FILES
         standart_qsort.h
         simple_sort.h
         multithread_qsort.h
-        thread_pool.h
-        thread_safe_queue.h
         multithread_partitioner.h
 )
 

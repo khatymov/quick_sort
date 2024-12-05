@@ -12,10 +12,13 @@ add_executable(${PROJECT_NAME}
                 main.cpp
 )
 
-add_subdirectory(src)
+# Precompiled header
+target_precompile_headers(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/pch.h)
 
 target_link_libraries(${PROJECT_NAME} sort_lib)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
 
-add_subdirectory(tests)
+
+
+#add_subdirectory(tests)

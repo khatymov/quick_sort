@@ -1,4 +1,4 @@
-/*! \file my_class.cpp
+/*! \file sort.cpp
  * \brief MyClass class implementation.
  */
 

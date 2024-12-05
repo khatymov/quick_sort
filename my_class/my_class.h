@@ -1,4 +1,4 @@
-/*! \file my_class.h
+/*! \file sort.h
  * \brief MyClass class interface.
  *
  * Class description.

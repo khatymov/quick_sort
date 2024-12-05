@@ -1,31 +1,33 @@
 cmake_minimum_required(VERSION 3.2)
 project(run_unit_tests LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "-ggdb -fprofile-arcs -ftest-coverage")
 
 SET(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
 
 find_package(GTest REQUIRED)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../my_class/my_class.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/my_class/my_class_test.cmake)
+include_directories(../src)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../src/move/move.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/move_test/move_test.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/sort/sort_test.cmake)
 
 add_executable(
         ${PROJECT_NAME}
         test.cpp
-        ${MY_CLASS}
-        ${MOVE}
-        ${MY_CLASS_TEST}
-        ${MOVE_TEST}
+        ${SORT_TEST}
 )
+
+# Precompiled header
+target_precompile_headers(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src/pch.h)
+
 target_link_libraries(
         ${PROJECT_NAME}
+        sort_lib
         gtest
 )
+
+target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
 
 enable_testing()
 

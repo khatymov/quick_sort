@@ -1,6 +1,5 @@
 [requires]
 gtest/1.14.0
-bshoshany-thread-pool/4.1.0
 
 [generators]
 CMakeDeps

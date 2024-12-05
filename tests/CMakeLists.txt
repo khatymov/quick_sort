@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 project(run_unit_tests LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
-#set(CMAKE_CXX_FLAGS "-ggdb -fprofile-arcs -ftest-coverage")
+set(CMAKE_CXX_FLAGS "-ggdb -fprofile-arcs -ftest-coverage")
 
 SET(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
 
@@ -26,6 +26,8 @@ target_link_libraries(
         sort_lib
         gtest
 )
+
+target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
 
 enable_testing()
 

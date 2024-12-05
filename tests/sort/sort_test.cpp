@@ -23,13 +23,11 @@ struct DataSet {
         if (data.size() != other.data.size()) {
             return false;
         }
-        for (const auto [id, vec]: data) {
+        for (const auto& [id, vec]: data) {
             auto otherVec = other.data.at(id);
             if (otherVec != vec) {
                 return false;
             }
-            int i = 1;
-            i++;
         }
 
         return true;
@@ -54,7 +52,7 @@ struct Sorter {
         }
 
         auto primaryData = sortedData[0];
-        for (int i = 1; i < sortedData.size(); i++) {
+        for (size_t i = 1; i < sortedData.size(); i++) {
             if (primaryData == sortedData[i]) {
                 // Too lazy to rework such logic
             } else {

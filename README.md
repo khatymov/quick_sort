@@ -4,7 +4,6 @@
 
 <p align="center">
     <img src="https://img.shields.io/appveyor/build/gruntjs/grunt" alt="build">
-    <img src="https://img.shields.io/badge/coverage-90-green" alt="Test coverage">
     <img src="https://img.shields.io/badge/Version-0.1-blue" alt="Version">
     <img src="https://img.shields.io/badge/License-GPL--3.0-orange" alt="License">
 </p>
@@ -13,12 +12,12 @@
 
 ## About
 
-You have to write a lot of code, but you don't want to waste your time creating the same thing every time. Then this cpp template for you.
+The goal of this project is to use the quicksort algorithm and multithreading to sort data faster than the standard library sorting algorithm.
 
 ---
 
 ## Requirements
-* C++ version: [`C++17`](https://en.cppreference.com/w/cpp/17)
+* C++ version: [`C++20`](https://en.cppreference.com/w/cpp/17)
 * Build system: [`CMake`](https://cmake.org/)
 * C++ compiler: `g++`
 * Code coverage report: [`lcov`](http://ltp.sourceforge.net/coverage/lcov.php)

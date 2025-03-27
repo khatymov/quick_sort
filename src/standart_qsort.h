@@ -22,4 +22,3 @@ template<typename T>
 void StandartQSort<T>::sort(std::vector<T>& data) {
     std::sort(data.begin(), data.end());
 }
-

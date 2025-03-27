@@ -111,7 +111,6 @@ TEST(test_sort, test_sort_random_double)
     cout << "SimpleQSort algorithm" << endl;
     sorter.sort(dataSet, std::make_unique<SimpleQSort<double>>());
 
-
     EXPECT_TRUE(sorter.verifyEqulityOfData());
 }
 

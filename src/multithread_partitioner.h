@@ -161,8 +161,6 @@ void MultithreadPartitioner<T>::worker() {
         while (data.size() > THRESHOLD_SIZE_TO_SORT) {
             const auto pivot = getPivotIterator(data);
             ++partitionCounter;
-//            std::span<T> leftSpan = {data.begin(), pivot};
-//            std::span<T> rightSpan = {pivot + 1, data.end()};
 
             const auto leftSize = pivot - data.begin();
             const auto rightSize = data.end() - (pivot + 1);
@@ -189,4 +187,3 @@ void MultithreadPartitioner<T>::worker() {
         m_pivot.counter.fetch_add(partitionCounter);
     }
 }
-

@@ -10,5 +10,5 @@ template<typename T>
 class ISorter {
 public:
     virtual void sort(std::vector<T>& data) = 0;
-    ~ISorter() = default;
+    virtual ~ISorter() = default;
 };

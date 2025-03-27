@@ -29,7 +29,7 @@ cmake --build . --config Release || exit $?
 ./run_unit_tests || exit $?
 
 # Get coverage and html report
-lcov --directory . --capture --output-file coverage.info || exit $?
+lcov --directory . --capture --ignore-errors inconsistent --output-file coverage.info || exit $?
 lcov --remove coverage.info '/opt/*' '/usr/*' '*/tests/*' 'build/*' --output-file coverage.info || exit $?
 lcov --list coverage.info || exit $?
 genhtml coverage.info --output-directory out || exit $?

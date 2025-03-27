@@ -2,33 +2,45 @@ cmake_minimum_required(VERSION 3.2)
 project(run_unit_tests LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "-ggdb -fprofile-arcs -ftest-coverage")
-
-SET(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-ggdb -fprofile-arcs -ftest-coverage -g")
 
 find_package(GTest REQUIRED)
 
-include_directories(../src)
+add_subdirectory(../src ${CMAKE_BINARY_DIR}/sort_lib)
 
 include(${CMAKE_CURRENT_LIST_DIR}/sort/sort_test.cmake)
 
+add_test(run_unit_tests ${PROJECT_NAME})
+
+# Source files
+set(SOURCE_FILES
+        pch.cpp
+        test.cpp
+)
+set(HEADER_FILES
+        pch.h
+)
+
 add_executable(
         ${PROJECT_NAME}
-        test.cpp
+        ${HEADER_FILES}
+        ${SOURCE_FILES}
         ${SORT_TEST}
 )
 
+
 # Precompiled header
-target_precompile_headers(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src/pch.h)
+target_precompile_headers(${PROJECT_NAME} PRIVATE pch.h)
+
+target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
+
+target_include_directories(sort_lib PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../src)
 
 target_link_libraries(
         ${PROJECT_NAME}
         sort_lib
-        gtest
+        GTest::gtest
+        GTest::gtest_main
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
-
 enable_testing()
-
-add_test(run_unit_tests ${PROJECT_NAME})
